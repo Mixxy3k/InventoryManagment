@@ -9,7 +9,7 @@
 
 <h3> Dodawanie produktu spoza zamówień </h3>
 
-@* <form method="post" action="productList">
+<form method="post" action="productList">
     <div class="form-group">
         <label for="productName">Nazwa produktu</label>
         <input type="text" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName">
@@ -40,9 +40,9 @@
         <InputFile OnChange="@LoadImages"/>
     </div>
     <button type="submit" class="btn btn-primary">Dodaj produkt</button>
-</form> *@
+</form>
 
-<EditForm @Prodduct>
+@* <EditForm @Prodduct>
     <div class="form-group">
         <label for="productName">Nazwa produktu</label>
         <InputText @bind-Value="product.Name" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName" />
@@ -73,7 +73,7 @@
         <InputFile OnChange="@LoadImages" />
     </div>
     <button type="submit" class="btn btn-primary">Dodaj produkt</button>
-</EditForm>
+</EditForm> *@
 
 @code {
     private bool isUploading;

@@ -3,10 +3,11 @@
 @using Microsoft.EntityFrameworkCore;
 @using TestingStuff.Data;
 @inject ApplicationDbContext _dbContext;
+@attribute [Authorize]
 
 <h3>Wszystkie produkty</h3>
 
-<input type="text" @bind="searchQuery" placeholder="Wyszukaj produkt" />
+<input type="text" @bind="searchQuery" @onkeyup="@Enter" placeholder="Wyszukaj produkt" />
 
 <button class="btn btn-primary" @onclick="Search">Szukaj</button>
 
@@ -54,7 +55,7 @@
     }
 </table>
 
-<a href="/addProduct" class="btn btn-outline-primary" role="button">Zamów towar</a>
+<a href="/addProduct" class="btn btn-outline-primary" role="button">Dodaj towar</a>
 <button class="btn btn-outline-primary">Zamów towar</button>
 
 @code {
@@ -126,6 +127,14 @@
                 .Where(p => p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
                             || p.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
                 .ToList();
+        }
+    }
+
+    void Enter(KeyboardEventArgs e)
+    {
+        if (e.Code == "Enter" || e.Code == "NumpadEnter")
+        {
+            Search();
         }
     }
 
