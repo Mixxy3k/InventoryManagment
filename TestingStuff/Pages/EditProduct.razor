@@ -1,0 +1,122 @@
+@page "/editProduct/{id:int}"
+@using TestingStuff.Models
+@using System.IO
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.EntityFrameworkCore
+@using TestingStuff.Data
+@inject NavigationManager NavigationManager
+@inject ApplicationDbContext _dbContext
+
+<h3>Edycja produktu</h3>
+
+@if (product != null)
+{
+    <EditForm Model="@product" OnValidSubmit="UpdateProduct">
+        <div class="form-group">
+            <label for="productName">Nazwa produktu</label>
+            <InputText @bind-Value="productName" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName" />
+        </div>
+        <div class="form-group">
+            <label for="productPrice">Cena produktu</label>
+            <InputText @bind-Value="productPrice" class="form-control" id="productPrice" placeholder="Wpisz cenę produktu" name="productPrice" />
+        </div>
+        <div class="form-group">
+            <label for="productQuantity">Ilość produktu</label>
+            <InputText @bind-Value="productQuantity" class="form-control" id="productQuantity" placeholder="Wpisz ilość produktu" name="productQuantity" />
+        </div>
+        <div class="form-group">
+            <label for="productDescription">Opis produktu</label>
+            <InputText @bind-Value="product.Description" class="form-control" id="productDescription" placeholder="Wpisz opis produktu" name="productDescription" />
+        </div>
+        <div class="form-group">
+            <label for="productSupplier">Dostawca produktu</label>
+            <select class="form-control" id="productSupplier" name="productSupplier" @bind="product.SupplierId">
+                <option value="">Wszyscy dostawcy</option>
+                @foreach (var item in suppliers)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="productCategory">Kategoria produktu</label>
+            <select class="form-control" id="productCategory" name="productCategory" @bind="product.CategoryId">
+                <option value="">Wszystkie kategorie</option>
+                @foreach (var item in categories)
+                {
+                    <option value="@item.Id">@item.Name</option>
+                }
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="productImage">Zdjęcie produktu</label>
+            <InputFile OnChange="@LoadImages" />
+        </div>
+        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+    </EditForm>
+}
+
+@code {
+    private Product product;
+    private IList<Category> categories = new List<Category>();
+    private IList<Supplier> suppliers = new List<Supplier>();
+
+    private string productName;
+    private string productPrice;
+    private string productQuantity;
+
+    [Parameter]
+    public int Id { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        product = await _dbContext.Products.FindAsync(Id);
+        categories = await _dbContext.Categories.ToListAsync();
+        suppliers = await _dbContext.Suppliers.ToListAsync();
+
+        if (product != null)
+        {
+            productName = product.Name;
+            productPrice = product.Price.ToString();
+            productQuantity = product.Quantity.ToString();
+        }
+    }
+
+    private async Task UpdateProduct()
+    {
+        if (product != null)
+        {
+            // Validate and parse the input values
+            if (string.IsNullOrWhiteSpace(productName) || !decimal.TryParse(productPrice, out decimal price) || !int.TryParse(productQuantity, out int quantity))
+            {
+                // Handle invalid input
+                // You can display an error message or perform any other action as needed
+                return;
+            }
+
+            // Update the product with the parsed values
+            product.Name = productName;
+            product.Price = price;
+            product.Quantity = quantity;
+
+            // Save changes to the database
+            _dbContext.Products.Update(product);
+            await _dbContext.SaveChangesAsync();
+
+            // Redirect to the productList page
+            NavigationManager.NavigateTo("/productList");
+        }
+    }
+
+    private async Task LoadImages(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            using (var stream = new MemoryStream())
+            {
+                await file.OpenReadStream().CopyToAsync(stream);
+                product.Image = stream.ToArray();
+            }
+        }
+    }
+}

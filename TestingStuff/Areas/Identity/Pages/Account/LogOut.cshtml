@@ -8,6 +8,8 @@
         if (SignInManager.IsSignedIn(User))
         {
             await SignInManager.SignOutAsync();
+
+            return Redirect("~/");
         }
 
         return Redirect("~/");

@@ -17,12 +17,10 @@ namespace TestingStuff.Data
         {
             if (!_context.Categories.Any())
             {
-                // Seed categories
                 var categories = new List<Category>
                 {
-                    new Category { Name = "Category 1", Description = "Category 1 description" },
-                    new Category { Name = "Category 2", Description = "Category 2 description" },
-                    // Add more categories as needed
+                    new Category { Name = "Kategoria 1", Description = "Opis kategorii 1" },
+                    new Category { Name = "Kategoria 2", Description = "Opis kategorii 2" },
                 };
 
                 _context.Categories.AddRange(categories);
@@ -31,12 +29,10 @@ namespace TestingStuff.Data
 
             if (!_context.Suppliers.Any())
             {
-                // Seed suppliers
                 var suppliers = new List<Supplier>
                 {
-                    new Supplier { Name = "Supplier 1", ContactDetails = "Contact details 1", Email = "supplier1@example.com" },
-                    new Supplier { Name = "Supplier 2", ContactDetails = "Contact details 2", Email = "supplier2@example.com" },
-                    // Add more suppliers as needed
+                    new Supplier { Name = "Dostawca 1", ContactDetails = "Szczegóły kontaktu 1", Email = "dostawca1@example.com" },
+                    new Supplier { Name = "Dostawca 2", ContactDetails = "Szczegóły kontaktu 2", Email = "dostawca2@example.com" },
                 };
 
                 _context.Suppliers.AddRange(suppliers);
@@ -49,31 +45,27 @@ namespace TestingStuff.Data
                 var response = httpClient.GetAsync("https://miro.medium.com/v2/resize:fit:640/format:webp/1*vhl49RME0h8TYSbmJ8StdA.png").Result;
                 var imageBytes = response.Content.ReadAsByteArrayAsync().Result;
 
-                // Seed products
+                // Zasiej produkty
                 var products = new List<Product>
                 {
-                    new Product { Name = "Product 1", Description = "Product 1 description", Price = 10.00m, Quantity = 10, CategoryId = 1, SupplierId = 1, Image = imageBytes },
-                    new Product { Name = "Product 2", Description = "Product 2 description", Price = 20.00m, Quantity = 20, CategoryId = 2, SupplierId = 2, Image = imageBytes },
-                    // Add more products as needed
+                    new Product { Name = "Produkt 1", Description = "Opis produktu 1", Price = 10.00m, Quantity = 10, CategoryId = 1, SupplierId = 1, Image = imageBytes },
+                    new Product { Name = "Produkt 2", Description = "Opis produktu 2", Price = 20.00m, Quantity = 20, CategoryId = 2, SupplierId = 2, Image = imageBytes },
                 };
 
                 _context.Products.AddRange(products);
                 _context.SaveChanges();
             }
 
-            if(!_context.OrderItems.Any())
+            if (!_context.OrderItems.Any())
             {
-                // Seed Order
-                var order = new Order { OrderNumber = "Order 1", OrderDate = DateTime.Now, SupplierId = 1 };
+                var order = new Order { OrderNumber = "Zamówienie 1", OrderDate = DateTime.Now, SupplierId = 1 };
                 _context.Orders.Add(order);
                 _context.SaveChanges();
 
-                // Seed OrderItem
                 var orderItem = new OrderItem { ProductId = 2, Quantity = 1, Price = 10.00m, OrderId = 1 };
                 _context.OrderItems.Add(orderItem);
                 _context.SaveChanges();
 
-                // Uodate Order.OrderItems
                 order.OrderItems = new List<OrderItem> { orderItem };
                 _context.Orders.Update(order);
                 _context.SaveChanges();

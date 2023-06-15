@@ -2,14 +2,29 @@
 @using TestingStuff.Models;
 @using Microsoft.EntityFrameworkCore;
 @using TestingStuff.Data;
-@inject ApplicationDbContext _dbContext;
+@inject NavigationManager NavigationManager
+@inject ApplicationDbContext _dbContext
 @attribute [Authorize]
 
 <h3>Wszystkie produkty</h3>
 
-<input type="text" @bind="searchQuery" @onkeyup="@Enter" placeholder="Wyszukaj produkt" />
-
-<button class="btn btn-primary" @onclick="Search">Szukaj</button>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <input type="text" @bind="searchQuery" @onkeyup="@Enter" placeholder="Wyszukaj produkt" class="form-control" />
+    </div>
+    <div class="col-md-4 mb-5">
+        <select @bind="selectedCategory" class="form-control">
+            <option value="">Wszystkie kategorie</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4 mb-3">
+        <button class="btn btn-primary btn-block" @onclick="Search">Szukaj</button>
+    </div>
+</div>
 
 
 <table class="table table-striped">
@@ -48,7 +63,8 @@
             <td>
                 <button class="btn btn-outline-success" @onclick="() => ChangeQuantity(product.Id, 1)">+</button>
                 <button class="btn btn-outline-danger" @onclick="() => ChangeQuantity(product.Id, -1)">-</button>
-                <button class="btn btn-outline-primary">Edytuj towar</button>
+                <button class="btn btn-outline-primary" @onclick="() => EditProduct(product.Id)">Edytuj towar</button>
+                <button class="btn btn-outline-primary" >Dodaj do zamównia</button>
                 <button class="btn btn-outline-danger" @onclick="() => DeleteProduct(product.Id)">Usuń</button>
             </td>
         </tr>
@@ -61,12 +77,17 @@
 @code {
     private List<Product> products = new List<Product>();
     private List<Product> filteredProducts = new List<Product>();
+    private List<Category> categories = new List<Category>();
+
     private string searchQuery = string.Empty;
+    private int selectedCategory;
 
     protected override async Task OnInitializedAsync()
     {
         // Fetch all products from the database
         products = await _dbContext.Products.ToListAsync();
+        categories = await _dbContext.Categories.ToListAsync();
+
 
         products.ForEach(p => p.Category = _dbContext.Categories.FirstOrDefault(c => c.Id == p.CategoryId));
         UpdateFilteredProducts();
@@ -103,6 +124,11 @@
         }
     }
 
+    void EditProduct(int id)
+    {
+        NavigationManager.NavigateTo($"/editProduct/{id}");
+    }
+
     void DeleteProduct(int id)
     {
         var product = products.FirstOrDefault(p => p.Id == id);
@@ -117,15 +143,29 @@
 
     void UpdateFilteredProducts()
     {
-        if (string.IsNullOrWhiteSpace(searchQuery))
+        if (string.IsNullOrWhiteSpace(searchQuery) && selectedCategory == 0)
         {
             filteredProducts = products;
+        }
+        else if (!string.IsNullOrWhiteSpace(searchQuery) && selectedCategory == 0)
+        {
+            filteredProducts = products
+                .Where(p => p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+                            || p.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        else if (string.IsNullOrWhiteSpace(searchQuery) && selectedCategory != 0)
+        {
+            filteredProducts = products
+                .Where(p => p.CategoryId == selectedCategory)
+                .ToList();
         }
         else
         {
             filteredProducts = products
                 .Where(p => p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
                             || p.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+                .Where(p => p.CategoryId == selectedCategory)
                 .ToList();
         }
     }

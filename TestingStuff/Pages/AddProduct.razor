@@ -1,70 +1,51 @@
 @page "/addProduct"
-@using TestingStuff.Models;
-@using System 
+@using TestingStuff.Models
 @using System.IO
 @using Microsoft.AspNetCore.Hosting
-@using Microsoft.EntityFrameworkCore;
-@using TestingStuff.Data;
-@inject ApplicationDbContext _dbContext;
+@using Microsoft.EntityFrameworkCore
+@using TestingStuff.Data
+@inject NavigationManager NavigationManager
+@inject ApplicationDbContext _dbContext
 
 <h3> Dodawanie produktu spoza zamówień </h3>
 
-<form method="post" action="productList">
+<EditForm Model="@product" OnValidSubmit="AddProductToDb">
     <div class="form-group">
         <label for="productName">Nazwa produktu</label>
-        <input type="text" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName">
+        <InputText @bind-Value="productName" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName" />
+        <ValidationMessage For="@(() => productName)" />
     </div>
     <div class="form-group">
         <label for="productPrice">Cena produktu</label>
-        <input type="text" class="form-control" id="productPrice" placeholder="Wpisz cenę produktu" name="productPrice">
+        <InputText @bind-Value="productPrice" class="form-control" id="productPrice" placeholder="Wpisz cenę produktu" name="productPrice" />
+        <ValidationMessage For="@(() => productPrice)" />
     </div>
     <div class="form-group">
         <label for="productQuantity">Ilość produktu</label>
-        <input type="text" class="form-control" id="productQuantity" placeholder="Wpisz ilość produktu" name="productQuantity">
-    </div>
-    <div class="form-group">
-        <label for="productDescription">Opis produktu</label>
-        <input type="text" class="form-control" id="productDescription" placeholder="Wpisz opis produktu" name="productDescription">
-    </div>
-    <div class="form-group">
-        <label for="productCategory">Kategoria produktu</label>
-        <select class="form-control" id="productCategory" name="productCategory">
-            @foreach (var item in categories)
-            {
-                <option>@item.Name</option>
-            }
-        </select>
-    </div>
-    <div class="form-group">
-        <label for="productImage">Zdjęcie produktu</label>
-        <InputFile OnChange="@LoadImages"/>
-    </div>
-    <button type="submit" class="btn btn-primary">Dodaj produkt</button>
-</form>
-
-@* <EditForm @Prodduct>
-    <div class="form-group">
-        <label for="productName">Nazwa produktu</label>
-        <InputText @bind-Value="product.Name" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName" />
-    </div>
-    <div class="form-group">
-        <label for="productPrice">Cena produktu</label>
-        <InputText @bind-Value="product.Price" class="form-control" id="productPrice" placeholder="Wpisz cenę produktu" name="productPrice" />
-    </div>
-    <div class="form-group">
-        <label for="productQuantity">Ilość produktu</label>
-        <InputText @bind-Value="product.Quantity" class="form-control" id="productQuantity" placeholder="Wpisz ilość produktu" name="productQuantity" />
+        <InputText @bind-Value="productQuantity" class="form-control" id="productQuantity" placeholder="Wpisz ilość produktu" name="productQuantity" />
+        <ValidationMessage For="@(() => productQuantity)" />
     </div>
     <div class="form-group">
         <label for="productDescription">Opis produktu</label>
         <InputText @bind-Value="product.Description" class="form-control" id="productDescription" placeholder="Wpisz opis produktu" name="productDescription" />
     </div>
     <div class="form-group">
+        <label for="productSupplier">Dostawca produktu</label>
+        <select class="form-control" id="productSupplier" name="productSupplier" @bind="product.SupplierId">
+            <option value="">Wszyscy dostawcy</option>
+            @foreach (var item in suppliers)
+            {
+                <option value="@item.Id">@item.Name</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
         <label for="productCategory">Kategoria produktu</label>
-        <select class="form-control" id="productCategory" name="productCategory">
+        <select class="form-control" id="productCategory" name="productCategory" @bind="product.CategoryId">
+            <option value="">Wszystkie kategorie</option>
             @foreach (var item in categories)
             {
-                <option>@item.Name</option>
+                <option value="@item.Id">@item.Name</option>
             }
         </select>
     </div>
@@ -73,16 +54,22 @@
         <InputFile OnChange="@LoadImages" />
     </div>
     <button type="submit" class="btn btn-primary">Dodaj produkt</button>
-</EditForm> *@
+</EditForm>
 
 @code {
     private bool isUploading;
     private Product product = new Product();
     private IList<Category> categories = new List<Category>();
+    private IList<Supplier> suppliers = new List<Supplier>();
+
+    private string productName;
+    private string productPrice;
+    private string productQuantity;
 
     protected override async Task OnInitializedAsync()
     {
         categories = await _dbContext.Categories.ToListAsync();
+        suppliers = await _dbContext.Suppliers.ToListAsync();
     }
 
     private async Task LoadImages(InputFileChangeEventArgs e)
@@ -91,10 +78,78 @@
         foreach (var file in e.GetMultipleFiles())
         {
             var resizedImageFile = await file.RequestImageFileAsync("image/png", 100, 100);
-            var buffer = new byte[resizedImageFile.Size];
-            await resizedImageFile.OpenReadStream().ReadAsync(buffer);
-            product.Image = buffer;
+            using (var ms = new MemoryStream())
+            {
+                await resizedImageFile.OpenReadStream().CopyToAsync(ms);
+                product.Image = ms.ToArray();
+            }
         }
         isUploading = false;
+    }
+
+    private async Task AddProductToDb()
+    {
+        // Clear previous validation errors
+        ClearValidationErrors();
+
+        // Perform necessary conversions and validate inputs
+        if (string.IsNullOrEmpty(productName))
+        {
+            AddValidationError(nameof(productName), "Nazwa produktu jest wymagana.");
+        }
+        else
+        {
+            product.Name = productName;
+        }
+
+        if (decimal.TryParse(productPrice, out decimal price))
+        {
+            product.Price = price;
+        }
+        else
+        {
+            AddValidationError(nameof(productPrice), "Nieprawidłowa cena produktu.");
+        }
+
+        if (int.TryParse(productQuantity, out int quantity))
+        {
+            product.Quantity = quantity;
+        }
+        else
+        {
+            AddValidationError(nameof(productQuantity), "Nieprawidłowa ilość produktu.");
+        }
+
+        // Check if there are any validation errors
+        if (HasValidationErrors())
+        {
+            return;
+        }
+
+        // Save the product to the database
+        _dbContext.Products.Add(product);
+        await _dbContext.SaveChangesAsync();
+
+        // Redirect to the product list page
+        NavigationManager.NavigateTo("/productList");
+    }
+
+    // Validation error handling
+
+    private Dictionary<string, string> validationErrors = new Dictionary<string, string>();
+
+    private void AddValidationError(string propertyName, string errorMessage)
+    {
+        validationErrors[propertyName] = errorMessage;
+    }
+
+    private bool HasValidationErrors()
+    {
+        return validationErrors.Count > 0;
+    }
+
+    private void ClearValidationErrors()
+    {
+        validationErrors.Clear();
     }
 }
