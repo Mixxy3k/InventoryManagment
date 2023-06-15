@@ -1,0 +1,100 @@
+@page "/addProduct"
+@using TestingStuff.Models;
+@using System 
+@using System.IO
+@using Microsoft.AspNetCore.Hosting
+@using Microsoft.EntityFrameworkCore;
+@using TestingStuff.Data;
+@inject ApplicationDbContext _dbContext;
+
+<h3> Dodawanie produktu spoza zamówień </h3>
+
+@* <form method="post" action="productList">
+    <div class="form-group">
+        <label for="productName">Nazwa produktu</label>
+        <input type="text" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName">
+    </div>
+    <div class="form-group">
+        <label for="productPrice">Cena produktu</label>
+        <input type="text" class="form-control" id="productPrice" placeholder="Wpisz cenę produktu" name="productPrice">
+    </div>
+    <div class="form-group">
+        <label for="productQuantity">Ilość produktu</label>
+        <input type="text" class="form-control" id="productQuantity" placeholder="Wpisz ilość produktu" name="productQuantity">
+    </div>
+    <div class="form-group">
+        <label for="productDescription">Opis produktu</label>
+        <input type="text" class="form-control" id="productDescription" placeholder="Wpisz opis produktu" name="productDescription">
+    </div>
+    <div class="form-group">
+        <label for="productCategory">Kategoria produktu</label>
+        <select class="form-control" id="productCategory" name="productCategory">
+            @foreach (var item in categories)
+            {
+                <option>@item.Name</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="productImage">Zdjęcie produktu</label>
+        <InputFile OnChange="@LoadImages"/>
+    </div>
+    <button type="submit" class="btn btn-primary">Dodaj produkt</button>
+</form> *@
+
+<EditForm @Prodduct>
+    <div class="form-group">
+        <label for="productName">Nazwa produktu</label>
+        <InputText @bind-Value="product.Name" class="form-control" id="productName" placeholder="Wpisz nazwę produktu" name="productName" />
+    </div>
+    <div class="form-group">
+        <label for="productPrice">Cena produktu</label>
+        <InputText @bind-Value="product.Price" class="form-control" id="productPrice" placeholder="Wpisz cenę produktu" name="productPrice" />
+    </div>
+    <div class="form-group">
+        <label for="productQuantity">Ilość produktu</label>
+        <InputText @bind-Value="product.Quantity" class="form-control" id="productQuantity" placeholder="Wpisz ilość produktu" name="productQuantity" />
+    </div>
+    <div class="form-group">
+        <label for="productDescription">Opis produktu</label>
+        <InputText @bind-Value="product.Description" class="form-control" id="productDescription" placeholder="Wpisz opis produktu" name="productDescription" />
+    </div>
+    <div class="form-group">
+        <label for="productCategory">Kategoria produktu</label>
+        <select class="form-control" id="productCategory" name="productCategory">
+            @foreach (var item in categories)
+            {
+                <option>@item.Name</option>
+            }
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="productImage">Zdjęcie produktu</label>
+        <InputFile OnChange="@LoadImages" />
+    </div>
+    <button type="submit" class="btn btn-primary">Dodaj produkt</button>
+</EditForm>
+
+@code {
+    private bool isUploading;
+    private Product product = new Product();
+    private IList<Category> categories = new List<Category>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        categories = await _dbContext.Categories.ToListAsync();
+    }
+
+    private async Task LoadImages(InputFileChangeEventArgs e)
+    {
+        isUploading = true;
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var resizedImageFile = await file.RequestImageFileAsync("image/png", 100, 100);
+            var buffer = new byte[resizedImageFile.Size];
+            await resizedImageFile.OpenReadStream().ReadAsync(buffer);
+            product.Image = buffer;
+        }
+        isUploading = false;
+    }
+}

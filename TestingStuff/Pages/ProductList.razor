@@ -1,0 +1,136 @@
+﻿@page "/productList"
+@using TestingStuff.Models;
+@using Microsoft.EntityFrameworkCore;
+@using TestingStuff.Data;
+@inject ApplicationDbContext _dbContext;
+
+<h3>Wszystkie produkty</h3>
+
+<input type="text" @bind="searchQuery" placeholder="Wyszukaj produkt" />
+
+<button class="btn btn-primary" @onclick="Search">Szukaj</button>
+
+
+<table class="table table-striped">
+    <tr>
+        <th>Podgląd</th>
+        <th>Nazwa</th>
+        <th>Cena</th>
+        <th>Opis</th>
+        <th>Kategoria</th>
+        <th>Stan magazynowy</th>
+        <th>Opcje</th>
+    </tr>
+    @foreach (var product in filteredProducts)
+    {
+        <tr>
+            <td>
+                <img src="@ConvertToBase64(product.Image)" width="100" />
+            </td>
+            <td>@product.Name</td>
+            <td>@product.Price</td>
+            <td>@product.Description</td>
+            <td>@product.Category.Name</td>
+            @if (product.Quantity < 3)
+            {
+                <td>
+                    <span class="text-danger">Niski stan magazynowy - @product.Quantity</span>
+                    <a href="/addProduct" class="btn btn-outline-primary" role="button">Zamów towar</a>
+                </td>
+            }
+            else
+            {
+                <td>
+                    <span class="text-success">Dostępny - @product.Quantity sztuk</span>
+                </td>
+            }
+            <td>
+                <button class="btn btn-outline-success" @onclick="() => ChangeQuantity(product.Id, 1)">+</button>
+                <button class="btn btn-outline-danger" @onclick="() => ChangeQuantity(product.Id, -1)">-</button>
+                <button class="btn btn-outline-primary">Edytuj towar</button>
+                <button class="btn btn-outline-danger" @onclick="() => DeleteProduct(product.Id)">Usuń</button>
+            </td>
+        </tr>
+    }
+</table>
+
+<a href="/addProduct" class="btn btn-outline-primary" role="button">Zamów towar</a>
+<button class="btn btn-outline-primary">Zamów towar</button>
+
+@code {
+    private List<Product> products = new List<Product>();
+    private List<Product> filteredProducts = new List<Product>();
+    private string searchQuery = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch all products from the database
+        products = await _dbContext.Products.ToListAsync();
+
+        products.ForEach(p => p.Category = _dbContext.Categories.FirstOrDefault(c => c.Id == p.CategoryId));
+        UpdateFilteredProducts();
+    }
+
+    // Convert the image byte array to a Base64 string
+    string ConvertToBase64(byte[] image)
+    {
+        if (image == null)
+        {
+            return null;
+        }
+
+        string base64Image = Convert.ToBase64String(image);
+        string imageSrc = string.Format("data:image/gif;base64,{0}", base64Image);
+        return imageSrc;
+    }
+
+    async void ChangeQuantity(int id, int quantity)
+    {
+        var product = products.FirstOrDefault(p => p.Id == id);
+        if (product != null)
+        {
+            product.Quantity += quantity;
+
+            if (product.Quantity < 0)
+            {
+                product.Quantity = 0;
+                return;
+            }
+
+            _dbContext.Products.Update(product);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+    void DeleteProduct(int id)
+    {
+        var product = products.FirstOrDefault(p => p.Id == id);
+        if (product != null)
+        {
+            products.Remove(product);
+            _dbContext.Products.Remove(product);
+            _dbContext.SaveChanges();
+            UpdateFilteredProducts();
+        }
+    }
+
+    void UpdateFilteredProducts()
+    {
+        if (string.IsNullOrWhiteSpace(searchQuery))
+        {
+            filteredProducts = products;
+        }
+        else
+        {
+            filteredProducts = products
+                .Where(p => p.Name.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)
+                            || p.Description.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+    }
+
+    void Search()
+    {
+        UpdateFilteredProducts();
+    }
+}
